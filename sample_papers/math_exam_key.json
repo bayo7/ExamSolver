@@ -1,0 +1,50 @@
+{
+  "1": {
+    "answer": "C",
+    "question": "What is the value of √144?"
+  },
+  "2": {
+    "answer": "C",
+    "question": "If 3x + 7 = 22, what is x?"
+  },
+  "3": {
+    "answer": "B",
+    "question": "What is 15% of 200?"
+  },
+  "4": {
+    "answer": "C",
+    "question": "A triangle has angles 45°, 90°, and x°. Find x."
+  },
+  "5": {
+    "answer": "A",
+    "question": "What is the area of a circle with radius 7? (Use π ≈ 3.14)"
+  },
+  "6": {
+    "answer": "B",
+    "question": "Simplify: 2³ × 2²"
+  },
+  "7": {
+    "answer": "C",
+    "question": "What is the slope of the line y = 3x − 5?"
+  },
+  "8": {
+    "answer": "C",
+    "question": "Find the LCM of 12 and 18."
+  },
+  "9": {
+    "answer": "A",
+    "question": "If a = 4 and b = 3, what is a² + b²?"
+  },
+  "10": {
+    "answer": "B",
+    "question": "What is the median of: 3, 7, 5, 9, 1?"
+  },
+  "11": {
+    "answer": "C",
+    "question": "How many degrees are in a full rotation?"
+  },
+  "12": {
+    "answer": "B",
+    "question": "What is 0.25 as a fraction in simplest form?"
+  }
+}
