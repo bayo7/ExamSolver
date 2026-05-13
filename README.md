@@ -148,5 +148,5 @@ A) Şık metni
 | Dil | Python 3.10+ |
 | Docx | python-docx |
 | Görsel | Pillow (PIL) |
-| AI | Claude / GPT-4o / Gemini 1.5 Pro |
+| AI | Claude / GPT-4o / Gemini 2.5 Flash |
 | Çıktı | python-docx |
