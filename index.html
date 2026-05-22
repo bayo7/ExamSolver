@@ -509,18 +509,7 @@
   <div class="card">
     <div class="card-title">02 — Ayarlar</div>
 
-    <div class="settings-row" style="grid-template-columns: 1fr;">
-      <div class="field">
-        <label>AI Provider</label>
-        <div class="select-wrap">
-          <select id="provider-select">
-            <option value="google">Google — Gemini 2.5 Flash</option>
-            <option value="anthropic">Anthropic — Claude 3.5</option>
-            <option value="openai">OpenAI — GPT-4o</option>
-          </select>
-        </div>
-      </div>
-    </div>
+
 
     <div class="toggle-row">
       <div>
@@ -696,22 +685,50 @@ solveBtn.addEventListener('click', async () => {
 
   const fd = new FormData();
   fd.append('file',     selectedFile);
-  fd.append('provider', document.getElementById('provider-select').value);
+
   fd.append('dry_run',  dryRun ? 'true' : 'false');
 
   try {
-    progressLabel.textContent = 'AI sorular çözüyor...';
-
-    const res  = await fetch(`${BASE_URL}/api/solve`, { method: 'POST', body: fd });
-    const data = await res.json();
-
-    progressSection.classList.remove('visible');
-
-    if (!res.ok || data.error) {
-      showError(data.error || `HTTP ${res.status}`);
+    // 1. Adım: İşi başlat, anında job_id al
+    progressLabel.textContent = 'Dosya yükleniyor...';
+    const startRes = await fetch(`${BASE_URL}/api/solve`, { method: 'POST', body: fd });
+    if (!startRes.ok) {
+      const err = await startRes.json();
+      showError(err.error || `HTTP ${startRes.status}`);
       setLoading(false);
       return;
     }
+    const { job_id } = await startRes.json();
+
+    // 2. Adım: Sonuç gelene kadar poll et (her 2 saniyede)
+    progressLabel.textContent = 'AI sorular çözüyor...';
+    let elapsed = 0;
+    const timerInterval = setInterval(() => {
+      elapsed++;
+      progressPct.textContent = `${elapsed}s geçti`;
+    }, 1000);
+
+    const data = await new Promise((resolve, reject) => {
+      const poll = async () => {
+        try {
+          const r = await fetch(`${BASE_URL}/api/status/${job_id}`);
+          const d = await r.json();
+          if (d.status === 'running') {
+            setTimeout(poll, 2000);
+          } else if (d.status === 'done') {
+            resolve(d);
+          } else {
+            reject(new Error(d.error || 'Bilinmeyen hata'));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      };
+      poll();
+    });
+
+    clearInterval(timerInterval);
+    progressSection.classList.remove('visible');
 
     renderResults(data, BASE_URL);
     resultsSection.classList.add('visible');

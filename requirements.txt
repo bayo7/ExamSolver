@@ -8,9 +8,13 @@ lxml==5.2.2                # XML parsing (docx iç yapısı)
 python-dotenv==1.0.1       # .env dosyasından API key okuma
 
 # LLM API clientları (kullandığına göre yükle)
-anthropic==0.30.0          # Claude API
-openai==1.35.0             # GPT-4o API
-google-generativeai==0.7.0 # Gemini API
+anthropic>=0.30.0          # Claude API
+openai>=2.0.0              # GPT-4o API (v1.x httpx 0.28+ ile uyumsuz)
+google-genai>=1.0.0        # Gemini API  ← DÜZELTİLDİ (eski: google-generativeai)
+
+# Web arayüzü için
+flask>=3.0.0
+flask-cors>=4.0.0
 
 # Opsiyonel: OCR (taranmış dosyalar için)
 pytesseract==0.3.13        # Tesseract OCR wrapper

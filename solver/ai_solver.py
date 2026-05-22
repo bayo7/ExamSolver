@@ -6,7 +6,7 @@ cevapları (A/B/C/D) ve açıklamaları döner.
 
 Desteklenen modeller:
   - claude-3-5-sonnet  (Anthropic, vision destekli)
-  - gemini-1.5-pro     (Google, vision destekli)
+  - gemini-2.5-flash   (Google, vision destekli)
   - gpt-4o             (OpenAI, vision destekli)
 
 Model seçimi .env dosyasındaki LLM_PROVIDER ile yapılır.
@@ -80,9 +80,7 @@ def extract_answer(raw_response: str) -> Dict[str, Any]:
 
     # Strateji 1: JSON parse
     try:
-        # ```json ... ``` bloklarını temizle
         cleaned = re.sub(r"```json\s*|\s*```", "", raw).strip()
-        # İlk { ile son } arasını al
         start = cleaned.find("{")
         end   = cleaned.rfind("}") + 1
         if start != -1 and end > start:
@@ -122,7 +120,6 @@ def extract_answer(raw_response: str) -> Dict[str, Any]:
             "reason": raw[:200],
         }
 
-    # Hiçbir şey bulunamadı
     return {
         "answer": "UNCERTAIN",
         "confidence": 0.0,
@@ -140,7 +137,6 @@ def solve_with_anthropic(question: Dict[str, Any]) -> Dict[str, Any]:
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     prompt_text = build_prompt_text(question)
 
-    # Content listesi: önce görseller, sonra metin
     content = []
 
     for img in question.get("images", []):
@@ -202,6 +198,15 @@ def solve_with_openai(question: Dict[str, Any]) -> Dict[str, Any]:
 # GOOGLE (Gemini 2.5 Flash)
 # ─────────────────────────────────────────────
 def solve_with_google(question: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Gemini 2.5 Flash ile soruyu çözer. Vision destekli.
+
+    DÜZELTME: google-generativeai yerine google-genai paketi kullanılıyor.
+    Doğru paket adı: pip install google-genai
+    Model string: gemini-2.5-flash (hâlâ geçerli, Mayıs 2026 itibarıyla)
+    """
+    # ÖNEMLİ: 'from google import genai' için 'google-genai' paketi gerekir,
+    # 'google-generativeai' paketi FARKLIDIR ve bu import'u desteklemez.
     from google import genai
     from google.genai import types
     import base64
@@ -223,10 +228,15 @@ def solve_with_google(question: Dict[str, Any]) -> Dict[str, Any]:
 
     response = client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=contents
+        contents=contents,
+        config=types.GenerateContentConfig(
+            max_output_tokens=512,
+            temperature=0.1,
+        )
     )
 
     return extract_answer(response.text)
+
 
 # ─────────────────────────────────────────────
 # ANA SOLVER FONKSİYONU
@@ -252,9 +262,8 @@ def solve_single_question(question: Dict[str, Any]) -> Dict[str, Any]:
         except Exception as e:
             last_error = e
             print(f"  [!] Q{question['question_number']} deneme {attempt}/{MAX_RETRIES} hata: {e}")
-            time.sleep(API_DELAY * attempt)  # Exponential backoff
+            time.sleep(API_DELAY * attempt)
 
-    # Tüm denemeler başarısız
     return {
         "question_number": question["question_number"],
         "question_text":   question["question_text"][:120],
@@ -284,11 +293,9 @@ def solve_questions(questions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             status = "→ ⚠️  UNCERTAIN"
         print(status)
 
-        # API rate limit için bekle
         if i < total:
             time.sleep(API_DELAY)
 
-    # İstatistik
     certain  = sum(1 for a in answers if a["answer"] != "UNCERTAIN")
     print(f"\n[Solver] Tamamlandı: {certain}/{total} soru cevaplandı.")
     return answers

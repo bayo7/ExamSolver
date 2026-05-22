@@ -126,8 +126,15 @@ def start_web(port: int = 5000):
     OUTPUT_FOLDER = os.path.join(BASE_DIR, "output_answers")
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
+    import threading
+    import uuid
+
     app = Flask(__name__, static_folder=None)
-    CORS(app)
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    # ── İş takip sözlüğü ──────────────────────────────────────────
+    jobs = {}  # job_id -> {status, result, error}
+    jobs_lock = threading.Lock()
 
     # ── Statik sayfa ──────────────────────────────────────────────
     @app.route("/")
@@ -139,7 +146,7 @@ def start_web(port: int = 5000):
     def health():
         return jsonify({"status": "ok", "version": "1.0"})
 
-    # ── Çözme endpoint'i ──────────────────────────────────────────
+    # ── Çözme endpoint'i (hemen job_id döner) ────────────────────
     @app.route("/api/solve", methods=["POST"])
     def solve():
         if "file" not in request.files:
@@ -152,62 +159,103 @@ def start_web(port: int = 5000):
         provider = request.form.get("provider", None)
         dry_run  = request.form.get("dry_run", "false").lower() == "true"
 
-        if provider:
-            os.environ["LLM_PROVIDER"] = provider
+        # Dosyayı oku (request stream kapanmadan önce)
+        file_bytes = f.read()
+        filename   = f.filename
 
-        tmp_path = os.path.join(tempfile.gettempdir(), f"exam_{int(time.time())}.docx")
-        f.save(tmp_path)
-        start = time.time()
+        job_id = str(uuid.uuid4())
+        with jobs_lock:
+            jobs[job_id] = {"status": "running", "result": None, "error": None}
 
-        try:
-            # Aşama 1 — Parse
-            questions = parse_exam(tmp_path)
-            if not questions:
-                return jsonify({"error": "Soru bulunamadı — dosya formatını kontrol edin"}), 422
-
-            # Aşama 2 — Çöz
-            if dry_run:
-                import random
-                answers = []
-                for q in questions:
-                    available = [k for k in q.get("options", {}).keys() if not k.endswith("_images")]
-                    choice = random.choice(available) if available else "A"
-                    answers.append({
-                        "question_number": q["question_number"],
-                        "question_text":   q["question_text"][:120],
-                        "answer":          choice,
-                        "confidence":      round(random.uniform(0.70, 0.99), 2),
-                        "reason":          "[DRY RUN] Bu gerçek bir cevap değildir.",
-                    })
-            else:
-                answers = solve_questions(questions)
-
-            # Aşama 3 — Yaz
-            output_docx = write_answers(
-                input_path=tmp_path,
-                answers=answers,
-                output_dir=OUTPUT_FOLDER,
-            )
-
-            elapsed = round(time.time() - start, 1)
-            return jsonify({
-                "success":       True,
-                "total":         len(questions),
-                "answered":      sum(1 for a in answers if a["answer"] != "UNCERTAIN"),
-                "uncertain":     sum(1 for a in answers if a["answer"] == "UNCERTAIN"),
-                "elapsed":       elapsed,
-                "provider":      os.environ.get("LLM_PROVIDER", "google"),
-                "docx_filename": Path(output_docx).name,
-                "answers":       answers,
-            })
-
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-        finally:
+        def run_job():
+            tmp_path = os.path.join(tempfile.gettempdir(), f"exam_{job_id}.docx")
             try:
-                os.remove(tmp_path)
-            except Exception:
-                pass
+                # Dosyayı geçici konuma yaz
+                with open(tmp_path, "wb") as fp:
+                    fp.write(file_bytes)
+
+                if provider:
+                    os.environ["LLM_PROVIDER"] = provider
+
+                start = time.time()
+
+                # Aşama 1 — Parse
+                questions = parse_exam(tmp_path)
+                if not questions:
+                    with jobs_lock:
+                        jobs[job_id]["status"] = "error"
+                        jobs[job_id]["error"]  = "Soru bulunamadı — dosya formatını kontrol edin"
+                    return
+
+                # Aşama 2 — Çöz
+                if dry_run:
+                    import random
+                    answers = []
+                    for q in questions:
+                        available = [k for k in q.get("options", {}).keys() if not k.endswith("_images")]
+                        choice = random.choice(available) if available else "A"
+                        answers.append({
+                            "question_number": q["question_number"],
+                            "question_text":   q["question_text"][:120],
+                            "answer":          choice,
+                            "confidence":      round(random.uniform(0.70, 0.99), 2),
+                            "reason":          "[DRY RUN] Bu gerçek bir cevap değildir.",
+                        })
+                else:
+                    answers = solve_questions(questions)
+
+                # Aşama 3 — Yaz
+                output_docx = write_answers(
+                    input_path=tmp_path,
+                    answers=answers,
+                    output_dir=OUTPUT_FOLDER,
+                )
+
+                elapsed = round(time.time() - start, 1)
+                with jobs_lock:
+                    jobs[job_id]["status"] = "done"
+                    jobs[job_id]["result"] = {
+                        "success":       True,
+                        "total":         len(questions),
+                        "answered":      sum(1 for a in answers if a["answer"] != "UNCERTAIN"),
+                        "uncertain":     sum(1 for a in answers if a["answer"] == "UNCERTAIN"),
+                        "elapsed":       elapsed,
+                        "provider":      os.environ.get("LLM_PROVIDER", "google"),
+                        "docx_filename": Path(output_docx).name,
+                        "answers":       answers,
+                    }
+
+            except Exception as e:
+                with jobs_lock:
+                    jobs[job_id]["status"] = "error"
+                    jobs[job_id]["error"]  = str(e)
+            finally:
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
+        thread = threading.Thread(target=run_job, daemon=True)
+        thread.start()
+
+        return jsonify({"job_id": job_id}), 202
+
+    # ── İş durumu endpoint'i (polling) ───────────────────────────
+    @app.route("/api/status/<job_id>")
+    def job_status(job_id):
+        with jobs_lock:
+            job = jobs.get(job_id)
+        if not job:
+            return jsonify({"error": "Geçersiz job_id"}), 404
+        if job["status"] == "running":
+            return jsonify({"status": "running"})
+        if job["status"] == "error":
+            return jsonify({"status": "error", "error": job["error"]}), 500
+        # done — sonucu döndür ve bellekten temizle
+        result = job["result"]
+        with jobs_lock:
+            jobs.pop(job_id, None)
+        return jsonify({"status": "done", **result})
 
     # ── İndirme endpoint'i ────────────────────────────────────────
     @app.route("/api/download/<filename>")
@@ -220,7 +268,7 @@ def start_web(port: int = 5000):
     print(f"  🌐  Web arayüzü: http://localhost:{port}")
     print(f"  📁  Çıktı klasörü: {OUTPUT_FOLDER}")
     print(f"  ✋  Durdurmak için Ctrl+C\n")
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
 
 
 # ══════════════════════════════════════════════════════════════════
