@@ -16,8 +16,6 @@ google-genai>=1.0.0        # Gemini API  ← DÜZELTİLDİ (eski: google-generat
 flask>=3.0.0
 flask-cors>=4.0.0
 
-# Opsiyonel: OCR (taranmış dosyalar için)
-pytesseract==0.3.13        # Tesseract OCR wrapper
-# Not: pytesseract için sistem paketi de gerekir:
-#   Ubuntu: sudo apt install tesseract-ocr
-#   Mac:    brew install tesseract
+# Bulut entegrasyonu
+firebase-admin>=6.0.0      # Firebase Auth + Firestore (Admin SDK)
+requests>=2.31.0           # Cloud Function HTTP çağrıları

@@ -18,18 +18,21 @@ import time
 import tempfile
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
 
 def print_banner():
     print("""
 ╔══════════════════════════════════════════════╗
-║          VisionSolve MCQ  v1.0               ║
+║          VisionSolve MCQ  v2.0               ║
 ║   AI-Powered Multiple Choice Exam Solver     ║
+║   Cloud Edition — Firebase + GCP             ║
 ╚══════════════════════════════════════════════╝
 """)
 
 
 def validate_input(path: str) -> bool:
-    """Girdi dosyasını kontrol eder."""
     if not os.path.exists(path):
         print(f"[✗] Dosya bulunamadı: {path}")
         return False
@@ -40,16 +43,11 @@ def validate_input(path: str) -> bool:
 
 
 def dry_run_solver(questions):
-    """
-    API çağrısı yapmadan sahte cevaplar üretir.
-    Sistemi test etmek için kullanılır.
-    """
     import random
     options = ["A", "B", "C", "D"]
     answers = []
     for q in questions:
-        available = list(q.get("options", {}).keys())
-        available = [o for o in available if not o.endswith("_images")]
+        available = [o for o in q.get("options", {}).keys() if not o.endswith("_images")]
         choice = random.choice(available) if available else random.choice(options)
         answers.append({
             "question_number": q["question_number"],
@@ -62,7 +60,6 @@ def dry_run_solver(questions):
 
 
 def save_json_log(answers, input_path: str, output_dir: str):
-    """Cevapları JSON formatında da kaydeder (debug için)."""
     base = os.path.splitext(os.path.basename(input_path))[0]
     json_path = os.path.join(output_dir, f"{base}_answers.json")
     with open(json_path, "w", encoding="utf-8") as f:
@@ -72,7 +69,6 @@ def save_json_log(answers, input_path: str, output_dir: str):
 
 
 def print_summary(answers):
-    """Terminal'e özet tablo yazar."""
     total     = len(answers)
     certain   = sum(1 for a in answers if a["answer"] != "UNCERTAIN")
     uncertain = total - certain
@@ -105,26 +101,35 @@ def print_summary(answers):
 # ══════════════════════════════════════════════════════════════════
 
 def start_web(port: int = 5000):
-    """
-    Flask web sunucusunu başlatır.
-    index.html'i sunar ve /api/solve endpointi üzerinden sınavı çözer.
-    """
     try:
-        from flask import Flask, request, jsonify, send_from_directory
+        from flask import Flask, request, jsonify, send_from_directory, g
         from flask_cors import CORS
     except ImportError:
-        print("[✗] Flask bulunamadı. Yüklemek için:")
-        print("    pip install flask flask-cors")
+        print("[✗] Flask bulunamadı: pip install flask flask-cors")
         sys.exit(1)
 
-    # Modülleri burada import et (web modunda da aynı pipeline)
-    from parser.docx_parser   import parse_exam
-    from solver.ai_solver      import solve_questions
-    from output.answer_writer  import write_answers
+    from parser.docx_parser  import parse_exam
+    from output.answer_writer import write_answers
 
     BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
     OUTPUT_FOLDER = os.path.join(BASE_DIR, "output_answers")
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+
+    CLOUD_FUNCTION_URL = os.getenv("CLOUD_FUNCTION_URL", "").strip()
+
+    # ── Firebase (opsiyonel) ───────────────────────────────────────
+    FIREBASE_ENABLED = False
+    try:
+        from cloud.firebase_service import FIREBASE_ENABLED as _FB
+        FIREBASE_ENABLED = _FB
+        if FIREBASE_ENABLED:
+            from cloud import firestore_db
+            from cloud.auth_middleware import get_uid_from_request
+            print("[Firebase] Bulut özellikleri aktif (Auth + Firestore).")
+        else:
+            print("[Firebase] Yapılandırılmamış; yerel modda çalışılıyor.")
+    except Exception as _fe:
+        print(f"[Firebase] Yüklenemedi: {_fe}")
 
     import threading
     import uuid
@@ -132,8 +137,7 @@ def start_web(port: int = 5000):
     app = Flask(__name__, static_folder=None)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # ── İş takip sözlüğü ──────────────────────────────────────────
-    jobs = {}  # job_id -> {status, result, error}
+    jobs = {}
     jobs_lock = threading.Lock()
 
     # ── Statik sayfa ──────────────────────────────────────────────
@@ -144,9 +148,27 @@ def start_web(port: int = 5000):
     # ── Sağlık kontrolü ───────────────────────────────────────────
     @app.route("/api/health")
     def health():
-        return jsonify({"status": "ok", "version": "1.0"})
+        return jsonify({
+            "status":          "ok",
+            "version":         "2.0",
+            "firebase":        FIREBASE_ENABLED,
+            "cloud_function":  bool(CLOUD_FUNCTION_URL),
+        })
 
-    # ── Çözme endpoint'i (hemen job_id döner) ────────────────────
+    # ── Firebase web config (frontend'in Firebase SDK'yı başlatması için) ──
+    @app.route("/api/firebase-config")
+    def firebase_config():
+        return jsonify({
+            "enabled":           FIREBASE_ENABLED,
+            "apiKey":            os.getenv("FIREBASE_WEB_API_KEY", ""),
+            "authDomain":        os.getenv("FIREBASE_AUTH_DOMAIN", ""),
+            "projectId":         os.getenv("FIREBASE_PROJECT_ID", ""),
+            "storageBucket":     os.getenv("FIREBASE_STORAGE_BUCKET", ""),
+            "messagingSenderId": os.getenv("FIREBASE_MESSAGING_SENDER_ID", ""),
+            "appId":             os.getenv("FIREBASE_APP_ID", ""),
+        })
+
+    # ── Çözme endpoint'i ──────────────────────────────────────────
     @app.route("/api/solve", methods=["POST"])
     def solve():
         if "file" not in request.files:
@@ -156,12 +178,19 @@ def start_web(port: int = 5000):
         if not f.filename.lower().endswith(".docx"):
             return jsonify({"error": "Sadece .docx dosyaları desteklenir"}), 400
 
-        provider = request.form.get("provider", None)
+        provider = request.form.get("provider", os.getenv("LLM_PROVIDER", "google"))
         dry_run  = request.form.get("dry_run", "false").lower() == "true"
 
-        # Dosyayı oku (request stream kapanmadan önce)
         file_bytes = f.read()
         filename   = f.filename
+
+        # Kullanıcı kimliğini al (opsiyonel — yoksa geçmişe kaydedilmez)
+        user_uid = None
+        if FIREBASE_ENABLED:
+            try:
+                user_uid = get_uid_from_request(request)
+            except Exception:
+                pass
 
         job_id = str(uuid.uuid4())
         with jobs_lock:
@@ -169,15 +198,10 @@ def start_web(port: int = 5000):
 
         def run_job():
             tmp_path = os.path.join(tempfile.gettempdir(), f"exam_{job_id}.docx")
+            exam_id  = None
             try:
-                # Dosyayı geçici konuma yaz
                 with open(tmp_path, "wb") as fp:
                     fp.write(file_bytes)
-
-                if provider:
-                    os.environ["LLM_PROVIDER"] = provider
-
-                start = time.time()
 
                 # Aşama 1 — Parse
                 questions = parse_exam(tmp_path)
@@ -186,6 +210,17 @@ def start_web(port: int = 5000):
                         jobs[job_id]["status"] = "error"
                         jobs[job_id]["error"]  = "Soru bulunamadı — dosya formatını kontrol edin"
                     return
+
+                # Firestore: başlangıç kaydı
+                if FIREBASE_ENABLED and user_uid:
+                    try:
+                        exam_id = firestore_db.save_exam_start(
+                            user_uid, filename, provider, len(questions)
+                        )
+                    except Exception as _dbe:
+                        print(f"[Firestore] Kayıt oluşturulamadı: {_dbe}")
+
+                start = time.time()
 
                 # Aşama 2 — Çöz
                 if dry_run:
@@ -201,10 +236,17 @@ def start_web(port: int = 5000):
                             "confidence":      round(random.uniform(0.70, 0.99), 2),
                             "reason":          "[DRY RUN] Bu gerçek bir cevap değildir.",
                         })
+                elif CLOUD_FUNCTION_URL:
+                    # Cloud Function üzerinden çöz
+                    from solver.cloud_solver import solve_questions_cloud
+                    answers = solve_questions_cloud(questions, provider)
                 else:
+                    # Yerel solver
+                    from solver.ai_solver import solve_questions
+                    os.environ["LLM_PROVIDER"] = provider
                     answers = solve_questions(questions)
 
-                # Aşama 3 — Yaz
+                # Aşama 3 — Cevap kağıdı yaz
                 output_docx = write_answers(
                     input_path=tmp_path,
                     answers=answers,
@@ -212,6 +254,14 @@ def start_web(port: int = 5000):
                 )
 
                 elapsed = round(time.time() - start, 1)
+
+                # Firestore: tamamlandı
+                if FIREBASE_ENABLED and user_uid and exam_id:
+                    try:
+                        firestore_db.finish_exam(exam_id, answers, Path(output_docx).name)
+                    except Exception as _dbe:
+                        print(f"[Firestore] Güncelleme hatası: {_dbe}")
+
                 with jobs_lock:
                     jobs[job_id]["status"] = "done"
                     jobs[job_id]["result"] = {
@@ -220,12 +270,19 @@ def start_web(port: int = 5000):
                         "answered":      sum(1 for a in answers if a["answer"] != "UNCERTAIN"),
                         "uncertain":     sum(1 for a in answers if a["answer"] == "UNCERTAIN"),
                         "elapsed":       elapsed,
-                        "provider":      os.environ.get("LLM_PROVIDER", "google"),
+                        "provider":      provider,
+                        "cloud":         bool(CLOUD_FUNCTION_URL and not dry_run),
                         "docx_filename": Path(output_docx).name,
                         "answers":       answers,
+                        "examId":        exam_id,
                     }
 
             except Exception as e:
+                if FIREBASE_ENABLED and user_uid and exam_id:
+                    try:
+                        firestore_db.fail_exam(exam_id, str(e))
+                    except Exception:
+                        pass
                 with jobs_lock:
                     jobs[job_id]["status"] = "error"
                     jobs[job_id]["error"]  = str(e)
@@ -235,12 +292,10 @@ def start_web(port: int = 5000):
                 except Exception:
                     pass
 
-        thread = threading.Thread(target=run_job, daemon=True)
-        thread.start()
-
+        threading.Thread(target=run_job, daemon=True).start()
         return jsonify({"job_id": job_id}), 202
 
-    # ── İş durumu endpoint'i (polling) ───────────────────────────
+    # ── İş durumu ─────────────────────────────────────────────────
     @app.route("/api/status/<job_id>")
     def job_status(job_id):
         with jobs_lock:
@@ -251,23 +306,55 @@ def start_web(port: int = 5000):
             return jsonify({"status": "running"})
         if job["status"] == "error":
             return jsonify({"status": "error", "error": job["error"]}), 500
-        # done — sonucu döndür ve bellekten temizle
         result = job["result"]
         with jobs_lock:
             jobs.pop(job_id, None)
         return jsonify({"status": "done", **result})
 
-    # ── İndirme endpoint'i ────────────────────────────────────────
+    # ── İndirme ───────────────────────────────────────────────────
     @app.route("/api/download/<filename>")
     def download(filename):
-        safe = Path(filename).name
-        return send_from_directory(OUTPUT_FOLDER, safe, as_attachment=True)
+        return send_from_directory(OUTPUT_FOLDER, Path(filename).name, as_attachment=True)
+
+    # ── Geçmiş sınavlar (Firebase gerekli) ───────────────────────
+    @app.route("/api/history")
+    def history():
+        if not FIREBASE_ENABLED:
+            return jsonify({"error": "Firebase yapılandırılmamış"}), 503
+        uid = get_uid_from_request(request)
+        if not uid:
+            return jsonify({"error": "Kimlik doğrulama gerekli"}), 401
+        try:
+            exams = firestore_db.list_exams(uid)
+            return jsonify({"exams": exams})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # ── Tek sınav detayı ──────────────────────────────────────────
+    @app.route("/api/history/<exam_id>")
+    def exam_detail(exam_id):
+        if not FIREBASE_ENABLED:
+            return jsonify({"error": "Firebase yapılandırılmamış"}), 503
+        uid = get_uid_from_request(request)
+        if not uid:
+            return jsonify({"error": "Kimlik doğrulama gerekli"}), 401
+        try:
+            exam = firestore_db.get_exam(exam_id, uid)
+            if not exam:
+                return jsonify({"error": "Sınav bulunamadı"}), 404
+            return jsonify(exam)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
 
     # ── Başlat ────────────────────────────────────────────────────
     print_banner()
-    print(f"  🌐  Web arayüzü: http://localhost:{port}")
-    print(f"  📁  Çıktı klasörü: {OUTPUT_FOLDER}")
-    print(f"  ✋  Durdurmak için Ctrl+C\n")
+    cloud_info = f"Cloud Function: {CLOUD_FUNCTION_URL}" if CLOUD_FUNCTION_URL else "Yerel solver"
+    print(f"  Web arayüzü  : http://localhost:{port}")
+    print(f"  Firebase     : {'Aktif' if FIREBASE_ENABLED else 'Devre dışı'}")
+    print(f"  AI Solver    : {cloud_info}")
+    print(f"  Çıktı klasörü: {OUTPUT_FOLDER}")
+    print(f"  Durdurmak için Ctrl+C\n")
     app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
 
 
@@ -276,22 +363,22 @@ def start_web(port: int = 5000):
 # ══════════════════════════════════════════════════════════════════
 
 def run_cli(args):
-    """Klasik CLI pipeline."""
-    from parser.docx_parser   import parse_exam
-    from solver.ai_solver      import solve_questions
-    from output.answer_writer  import write_answers
+    from parser.docx_parser  import parse_exam
+    from output.answer_writer import write_answers
 
     print_banner()
 
+    CLOUD_FUNCTION_URL = os.getenv("CLOUD_FUNCTION_URL", "").strip()
+
     if args.provider:
         os.environ["LLM_PROVIDER"] = args.provider
+    provider = os.environ.get("LLM_PROVIDER", "google")
 
     if not validate_input(args.input):
         sys.exit(1)
 
     start_time = time.time()
 
-    # Aşama 1 — Parse
     print(f"[1/3]  Dosya okunuyor: {args.input}")
     try:
         questions = parse_exam(args.input)
@@ -300,25 +387,30 @@ def run_cli(args):
         sys.exit(1)
 
     if not questions:
-        print("[✗] Hiç soru bulunamadı. Dosya formatını kontrol edin.")
+        print("[✗] Hiç soru bulunamadı.")
         sys.exit(1)
-
     print(f"       → {len(questions)} soru bulundu\n")
 
-    # Aşama 2 — Çöz
     print("[2/3]  Sorular çözülüyor...")
     if args.dry_run:
         print("       ⚠️  DRY RUN modu — gerçek API çağrısı yapılmıyor")
         answers = dry_run_solver(questions)
+    elif CLOUD_FUNCTION_URL:
+        print(f"       Cloud Function: {CLOUD_FUNCTION_URL}")
+        try:
+            from solver.cloud_solver import solve_questions_cloud
+            answers = solve_questions_cloud(questions, provider)
+        except Exception as e:
+            print(f"[✗] Cloud Solver hatası: {e}")
+            sys.exit(1)
     else:
         try:
+            from solver.ai_solver import solve_questions
             answers = solve_questions(questions)
         except Exception as e:
             print(f"[✗] Solver hatası: {e}")
-            print("    İpucu: .env dosyasında API key'ini kontrol et.")
             sys.exit(1)
 
-    # Aşama 3 — Yaz
     print("\n[3/3]  Cevap kağıdı oluşturuluyor...")
     os.makedirs(args.output_dir, exist_ok=True)
     try:
@@ -336,8 +428,8 @@ def run_cli(args):
 
     elapsed = time.time() - start_time
     print_summary(answers)
-    print(f"  ✅  Tamamlandı! ({elapsed:.1f} saniye)")
-    print(f"  📄  Cevap kağıdı: {output_path}\n")
+    print(f"  Tamamlandı! ({elapsed:.1f} saniye)")
+    print(f"  Cevap kağıdı: {output_path}\n")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -346,7 +438,7 @@ def run_cli(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="VisionSolve MCQ — AI ile çoktan seçmeli sınav çözücü",
+        description="VisionSolve MCQ — AI ile çoktan seçmeli sınav çözücü (Cloud Edition)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Örnekler:\n"
@@ -355,56 +447,21 @@ def main():
             "  python main.py --port 8080            # Farklı port ile web\n"
         ),
     )
-
-    parser.add_argument(
-        "--cli",
-        action="store_true",
-        help="CLI pipeline modunda çalıştır (web sunucusu başlatılmaz)"
-    )
-    parser.add_argument(
-        "input",
-        nargs="?",
-        default=None,
-        help="[CLI modu] Çözülecek .docx sınav dosyası"
-    )
-    parser.add_argument(
-        "--output-dir", "-o",
-        default="output_answers",
-        help="[CLI modu] Çıktı klasörü (varsayılan: output_answers/)"
-    )
-    parser.add_argument(
-        "--provider", "-p",
-        choices=["google", "anthropic", "openai"],
-        default=None,
-        help="Kullanılacak LLM API (varsayılan: .env'den LLM_PROVIDER)"
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="API çağrısı yapmadan test modu (sahte cevaplar)"
-    )
-    parser.add_argument(
-        "--save-json",
-        action="store_true",
-        default=True,
-        help="[CLI modu] Cevapları JSON olarak da kaydet (varsayılan: açık)"
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=5000,
-        help="[Web modu] Sunucu portu (varsayılan: 5000)"
-    )
+    parser.add_argument("--cli", action="store_true")
+    parser.add_argument("input", nargs="?", default=None)
+    parser.add_argument("--output-dir", "-o", default="output_answers")
+    parser.add_argument("--provider", "-p", choices=["google", "anthropic", "openai"], default=None)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--save-json", action="store_true", default=True)
+    parser.add_argument("--port", type=int, default=5000)
 
     args = parser.parse_args()
 
-    # CLI modu: --cli flag'i ya da positional argüman verilmişse
     if args.cli or args.input:
         if not args.input:
-            parser.error("CLI modunda bir .docx dosyası belirtmelisiniz: python main.py --cli sinav.docx")
+            parser.error("CLI modunda bir .docx dosyası belirtmelisiniz")
         run_cli(args)
     else:
-        # Argümansız çalıştırıldı → web sunucusu
         start_web(port=args.port)
 
 

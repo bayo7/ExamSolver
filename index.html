@@ -33,7 +33,6 @@
     overflow-x: hidden;
   }
 
-  /* ── Background grid ── */
   body::before {
     content: '';
     position: fixed;
@@ -60,6 +59,7 @@
     align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 56px;
+    gap: 16px;
   }
   .logo-block {}
   .logo-tag {
@@ -88,6 +88,64 @@
     letter-spacing: 2px;
   }
 
+  /* ── Auth area ── */
+  .auth-area {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .btn-login {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+  }
+  .btn-login:hover { background: var(--accent); color: var(--bg); }
+
+  .user-pill {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .user-pill.visible { display: flex; }
+  .user-pill .user-name { color: var(--accent); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn-logout {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+    transition: color .2s;
+  }
+  .btn-logout:hover { color: var(--danger); }
+  .btn-history {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-history:hover { border-color: var(--accent2); color: var(--accent2); }
+
   /* ── Card ── */
   .card {
     background: var(--surface);
@@ -104,6 +162,7 @@
     height: 100%;
     background: var(--accent);
   }
+  .card.card-blue::before { background: var(--accent2); }
   .card-title {
     font-family: var(--display);
     font-weight: 600;
@@ -124,123 +183,24 @@
     position: relative;
     overflow: hidden;
   }
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--accent);
-    background: rgba(200,240,80,.04);
-  }
-  .drop-zone input[type="file"] {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    cursor: pointer;
-    width: 100%;
-    height: 100%;
-  }
-  .drop-icon {
-    font-size: 36px;
-    margin-bottom: 12px;
-    display: block;
-  }
-  .drop-label {
-    font-family: var(--display);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-  .drop-hint {
-    color: var(--muted);
-    font-size: 12px;
-  }
-  .file-name {
-    margin-top: 16px;
-    font-size: 12px;
-    color: var(--accent);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(200,240,80,.04); }
+  .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .drop-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+  .drop-label { font-family: var(--display); font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .drop-hint { color: var(--muted); font-size: 12px; }
+  .file-name { margin-top: 16px; font-size: 12px; color: var(--accent); display: none; align-items: center; justify-content: center; gap: 8px; }
   .file-name.visible { display: flex; }
-  .file-name span { 
-    background: rgba(200,240,80,.12);
-    padding: 4px 12px;
-    border: 1px solid rgba(200,240,80,.3);
-  }
-
-  /* ── Settings row ── */
-  .settings-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  @media (max-width: 560px) { .settings-row { grid-template-columns: 1fr; } }
-
-  .field label {
-    display: block;
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-  select, input[type="text"] {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 13px;
-    padding: 10px 14px;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    transition: border-color .2s;
-  }
-  select:focus, input:focus { border-color: var(--accent); }
-  .select-wrap { position: relative; }
-  .select-wrap::after {
-    content: '▾';
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    pointer-events: none;
-  }
+  .file-name span { background: rgba(200,240,80,.12); padding: 4px 12px; border: 1px solid rgba(200,240,80,.3); }
 
   /* ── Toggle ── */
-  .toggle-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 16px;
-  }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
   .toggle-row:last-child { border-bottom: none; margin-bottom: 0; }
   .toggle-label { color: var(--text); }
   .toggle-hint { color: var(--muted); font-size: 11px; margin-top: 2px; }
-  .toggle {
-    width: 40px; height: 22px;
-    background: var(--border);
-    border-radius: 0;
-    position: relative;
-    cursor: pointer;
-    transition: background .2s;
-    flex-shrink: 0;
-  }
+  .toggle { width: 40px; height: 22px; background: var(--border); border-radius: 0; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
   .toggle.on { background: var(--accent); }
-  .toggle::after {
-    content: '';
-    position: absolute;
-    top: 3px; left: 3px;
-    width: 16px; height: 16px;
-    background: var(--bg);
-    transition: left .2s;
-  }
-  .toggle.on::after { left: 21px; background: var(--bg); }
+  .toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; background: var(--bg); transition: left .2s; }
+  .toggle.on::after { left: 21px; }
 
   /* ── Button ── */
   .btn-solve {
@@ -256,227 +216,188 @@
     padding: 18px;
     cursor: pointer;
     transition: transform .1s, opacity .2s;
-    position: relative;
-    overflow: hidden;
   }
   .btn-solve:hover:not(:disabled) { opacity: .9; }
   .btn-solve:active:not(:disabled) { transform: scale(.99); }
-  .btn-solve:disabled {
-    opacity: .35;
-    cursor: not-allowed;
-  }
-  .btn-solve .btn-inner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-  }
+  .btn-solve:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-solve .btn-inner { display: flex; align-items: center; justify-content: center; gap: 10px; }
 
   /* ── Progress ── */
-  #progress-section {
-    display: none;
-    margin-bottom: 24px;
-  }
+  #progress-section { display: none; margin-bottom: 24px; }
   #progress-section.visible { display: block; }
-  .progress-status {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 1px;
-    margin-bottom: 10px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .progress-bar {
-    height: 3px;
-    background: var(--border);
-    position: relative;
-    overflow: hidden;
-  }
-  .progress-fill {
-    position: absolute;
-    top: 0; left: 0;
-    height: 100%;
-    background: var(--accent);
-    transition: width .4s;
-    width: 0%;
-  }
-  .progress-fill.indeterminate {
-    width: 40%;
-    animation: slide 1.2s ease-in-out infinite;
-  }
-  @keyframes slide {
-    0% { left: -40%; }
-    100% { left: 100%; }
-  }
+  .progress-status { font-size: 11px; color: var(--muted); letter-spacing: 1px; margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .progress-bar { height: 3px; background: var(--border); position: relative; overflow: hidden; }
+  .progress-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(--accent); transition: width .4s; width: 0%; }
+  .progress-fill.indeterminate { width: 40%; animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { 0% { left: -40%; } 100% { left: 100%; } }
 
   /* ── Results ── */
   #results-section { display: none; }
   #results-section.visible { display: block; }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
   @media (max-width: 560px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
-
-  .stat-box {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    padding: 16px;
-    text-align: center;
-  }
-  .stat-val {
-    font-family: var(--display);
-    font-size: 28px;
-    font-weight: 800;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
+  .stat-box { background: var(--bg); border: 1px solid var(--border); padding: 16px; text-align: center; }
+  .stat-val { font-family: var(--display); font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
   .stat-val.green  { color: var(--success); }
   .stat-val.yellow { color: var(--warn); }
   .stat-val.blue   { color: var(--accent2); }
   .stat-val.accent { color: var(--accent); }
-  .stat-lbl {
-    font-size: 10px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
+  .stat-lbl { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
 
-  /* ── Answer table ── */
-  .answer-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 8px;
-    margin-bottom: 24px;
-  }
-  .answer-card {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    padding: 12px 14px;
-    cursor: pointer;
-    transition: border-color .15s;
-  }
+  /* ── Answer grid ── */
+  .answer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-bottom: 24px; }
+  .answer-card { background: var(--bg); border: 1px solid var(--border); padding: 12px 14px; cursor: pointer; transition: border-color .15s; }
   .answer-card:hover { border-color: var(--muted); }
   .answer-card.expanded { border-color: var(--accent); }
-  .answer-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-  }
-  .q-num {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 1px;
-  }
-  .badge {
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: 18px;
-    line-height: 1;
-  }
-  .badge.A { color: #a0d0ff; }
-  .badge.B { color: #a0ffb0; }
-  .badge.C { color: #ffd080; }
-  .badge.D { color: #ff9080; }
+  .answer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+  .q-num { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+  .badge { font-family: var(--display); font-weight: 800; font-size: 18px; line-height: 1; }
+  .badge.A { color: #a0d0ff; } .badge.B { color: #a0ffb0; } .badge.C { color: #ffd080; } .badge.D { color: #ff9080; }
   .badge.UNCERTAIN { color: var(--warn); font-size: 12px; }
-  .conf-bar {
-    height: 2px;
-    background: var(--border);
-    margin-top: 6px;
-  }
-  .conf-fill {
-    height: 100%;
-    background: var(--accent);
-    transition: width .4s .1s;
-  }
+  .conf-bar { height: 2px; background: var(--border); margin-top: 6px; }
+  .conf-fill { height: 100%; background: var(--accent); transition: width .4s .1s; }
   .conf-fill.low { background: var(--warn); }
-  .reason-text {
-    display: none;
-    margin-top: 8px;
-    font-size: 11px;
-    color: var(--muted);
-    line-height: 1.5;
-    border-top: 1px solid var(--border);
-    padding-top: 8px;
-  }
+  .reason-text { display: none; margin-top: 8px; font-size: 11px; color: var(--muted); line-height: 1.5; border-top: 1px solid var(--border); padding-top: 8px; }
   .answer-card.expanded .reason-text { display: block; }
 
-  /* ── Download button ── */
+  /* ── Buttons ── */
   .btn-download {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--accent);
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 12px 24px;
-    cursor: pointer;
-    text-decoration: none;
-    transition: background .2s, color .2s;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    font-family: var(--mono); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 12px 24px; cursor: pointer; text-decoration: none; transition: background .2s, color .2s;
   }
-  .btn-download:hover {
-    background: var(--accent);
-    color: var(--bg);
-  }
-
-  /* ── Reset button ── */
+  .btn-download:hover { background: var(--accent); color: var(--bg); }
   .btn-reset {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 12px 24px;
-    cursor: pointer;
-    transition: border-color .2s, color .2s;
-    margin-left: 12px;
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-family: var(--mono); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 12px 24px; cursor: pointer; transition: border-color .2s, color .2s; margin-left: 12px;
   }
   .btn-reset:hover { border-color: var(--muted); color: var(--text); }
 
   /* ── Error ── */
-  .error-box {
-    display: none;
-    border: 1px solid var(--danger);
-    background: rgba(240,80,96,.06);
-    padding: 16px 20px;
-    color: var(--danger);
-    font-size: 12px;
-    margin-bottom: 16px;
-  }
+  .error-box { display: none; border: 1px solid var(--danger); background: rgba(240,80,96,.06); padding: 16px 20px; color: var(--danger); font-size: 12px; margin-bottom: 16px; }
   .error-box.visible { display: block; }
 
-  /* ── Footer ── */
-  footer {
-    margin-top: 64px;
-    padding-top: 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: var(--muted);
-    font-size: 11px;
+  /* ── History section ── */
+  #history-section { display: none; margin-bottom: 24px; }
+  #history-section.visible { display: block; }
+  .history-empty { color: var(--muted); font-size: 12px; padding: 16px 0; text-align: center; }
+  .history-item {
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color .15s;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: start;
   }
-  .provider-dots { display: flex; gap: 8px; align-items: center; }
-  .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--border);
+  .history-item:hover { border-color: var(--accent2); }
+  .history-item.open { border-color: var(--accent2); }
+  .hist-name { font-size: 12px; color: var(--text); margin-bottom: 4px; word-break: break-all; }
+  .hist-meta { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+  .hist-badge {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 13px;
+    padding: 4px 10px;
+    border: 1px solid;
+    white-space: nowrap;
   }
-  .dot.active { background: var(--success); }
+  .hist-badge.completed { color: var(--success); border-color: var(--success); }
+  .hist-badge.processing { color: var(--warn); border-color: var(--warn); }
+  .hist-badge.error { color: var(--danger); border-color: var(--danger); }
+  .hist-answers { display: none; margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .history-item.open .hist-answers { display: block; }
+  .hist-answer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }
+  .btn-load-answers {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 6px 12px; cursor: pointer; margin-top: 8px; transition: border-color .2s, color .2s;
+  }
+  .btn-load-answers:hover { border-color: var(--accent2); color: var(--accent2); }
 
+
+  /* ── Cloud badge ── */
+  .cloud-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--accent2); border: 1px solid rgba(80,200,240,.3);
+    padding: 2px 8px; margin-left: 8px;
+  }
+
+  /* ── Modal overlay ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    width: 100%;
+    max-width: 420px;
+    margin: 24px;
+    position: relative;
+  }
+  .modal::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--accent); }
+  .modal-header { padding: 28px 32px 0; }
+  .modal-title { font-family: var(--display); font-weight: 800; font-size: 22px; margin-bottom: 4px; }
+  .modal-subtitle { font-size: 11px; color: var(--muted); letter-spacing: 1px; }
+  .modal-body { padding: 24px 32px 32px; }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .form-field { margin-bottom: 16px; }
+  .form-field label { display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .form-field input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 13px; padding: 10px 14px; outline: none;
+    transition: border-color .2s;
+  }
+  .form-field input:focus { border-color: var(--accent); }
+
+  .btn-primary {
+    width: 100%; background: var(--accent); color: var(--bg); border: none;
+    font-family: var(--display); font-weight: 800; font-size: 14px; letter-spacing: 2px;
+    text-transform: uppercase; padding: 14px; cursor: pointer; transition: opacity .2s; margin-bottom: 12px;
+  }
+  .btn-primary:hover { opacity: .9; }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+  .btn-google {
+    width: 100%; background: transparent; color: var(--text); border: 1px solid var(--border);
+    font-family: var(--mono); font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 12px; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 16px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .btn-google:hover { border-color: var(--accent2); background: rgba(80,200,240,.05); }
+
+  .modal-divider { text-align: center; color: var(--muted); font-size: 11px; margin: 12px 0; position: relative; }
+  .modal-divider::before, .modal-divider::after { content: ''; position: absolute; top: 50%; width: 40%; height: 1px; background: var(--border); }
+  .modal-divider::before { left: 0; } .modal-divider::after { right: 0; }
+
+  .modal-toggle { text-align: center; font-size: 11px; color: var(--muted); }
+  .modal-toggle button { background: none; border: none; color: var(--accent); font-family: var(--mono); font-size: 11px; cursor: pointer; text-decoration: underline; }
+
+  .auth-error { color: var(--danger); font-size: 11px; margin-bottom: 12px; display: none; }
+  .auth-error.visible { display: block; }
+
+  /* ── Footer ── */
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 11px; }
+  .provider-dots { display: flex; gap: 8px; align-items: center; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+  .dot.active { background: var(--success); }
 </style>
 </head>
 <body>
@@ -485,9 +406,19 @@
   <!-- Header -->
   <header>
     <div class="logo-block">
-      <div class="logo-tag">// AI Exam Solver</div>
+      <div class="logo-tag">// AI Exam Solver — Cloud Edition</div>
       <h1>Vision<span>Solve</span></h1>
-      <div class="version-badge">MCQ v1.0</div>
+      <div class="version-badge">MCQ v2.0 — Firebase + GCP</div>
+    </div>
+
+    <!-- Auth area -->
+    <div class="auth-area">
+      <button class="btn-login" id="login-btn">Giriş Yap</button>
+      <div class="user-pill" id="user-pill">
+        <span class="user-name" id="user-display"></span>
+        <button class="btn-history" id="history-toggle-btn">Geçmiş</button>
+        <button class="btn-logout" id="logout-btn">Cikis</button>
+      </div>
     </div>
   </header>
 
@@ -508,9 +439,6 @@
   <!-- Config card -->
   <div class="card">
     <div class="card-title">02 — Ayarlar</div>
-
-
-
     <div class="toggle-row">
       <div>
         <div class="toggle-label">Test Modu (Dry Run)</div>
@@ -541,7 +469,6 @@
   <div id="results-section">
     <div class="card">
       <div class="card-title">04 — Sonuçlar</div>
-
       <div class="stats-grid">
         <div class="stat-box">
           <div class="stat-val accent" id="stat-total">0</div>
@@ -560,13 +487,9 @@
           <div class="stat-lbl">Süre</div>
         </div>
       </div>
-
       <div class="answer-grid" id="answer-grid"></div>
-
       <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;">
-        <a class="btn-download" id="download-btn" href="#" target="_blank">
-          ⬇ Cevap Kağıdını İndir (.docx)
-        </a>
+        <a class="btn-download" id="download-btn" href="#" target="_blank">⬇ Cevap Kağıdını İndir (.docx)</a>
         <button class="btn-reset" id="reset-btn">↺ Yeni Sınav</button>
       </div>
     </div>
@@ -580,24 +503,332 @@
     </div>
   </button>
 
+  <!-- History section -->
+  <div id="history-section">
+    <div class="card card-blue">
+      <div class="card-title">05 — Sınav Geçmişi (Cloud Firestore)</div>
+      <div id="history-list">
+        <div class="history-empty">Geçmiş yükleniyor...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <footer>
-    <span>VisionSolve MCQ — Powered by AI</span>
+    <span>VisionSolve MCQ — Firebase + Cloud Functions</span>
     <div class="provider-dots">
       <span>API</span>
       <div class="dot" id="api-dot"></div>
+      <span>Firebase</span>
+      <div class="dot" id="firebase-dot"></div>
     </div>
   </footer>
-
 </div>
 
+<!-- Login Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Giriş Yap</div>
+      <div class="modal-subtitle" id="modal-subtitle">HESABINIZA GİRİŞ YAPIN</div>
+    </div>
+    <button class="modal-close" id="modal-close">✕</button>
+    <div class="modal-body">
+      <div class="auth-error" id="auth-error"></div>
+
+      <!-- Google sign-in -->
+      <button class="btn-google" id="google-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Google ile Giriş Yap
+      </button>
+
+      <div class="modal-divider">veya</div>
+
+      <div class="form-field">
+        <label>E-posta</label>
+        <input type="email" id="auth-email" placeholder="ornek@email.com" autocomplete="email"/>
+      </div>
+      <div class="form-field">
+        <label>Şifre</label>
+        <input type="password" id="auth-password" placeholder="••••••••" autocomplete="current-password"/>
+      </div>
+
+      <button class="btn-primary" id="auth-submit-btn">Giriş Yap</button>
+
+      <div class="modal-toggle">
+        <span id="modal-toggle-text">Hesabınız yok mu?</span>
+        <button id="modal-toggle-btn">Kayıt Ol</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase JS SDK (modular v10) -->
+<script type="module">
+import { initializeApp }          from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
+import { getAuth,
+         onAuthStateChanged,
+         signInWithEmailAndPassword,
+         createUserWithEmailAndPassword,
+         GoogleAuthProvider,
+         signInWithPopup,
+         signOut }                from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+
+/* ════════════════════════════════════════════════════════════
+   Firebase başlatma — config /api/firebase-config'den gelir
+════════════════════════════════════════════════════════════ */
+let fbAuth     = null;
+let fbEnabled  = false;
+let idToken    = null;  // her auth state değişiminde güncellenir
+
+async function initFirebase() {
+  try {
+    const res = await fetch('/api/firebase-config');
+    const cfg = await res.json();
+
+    if (!cfg.enabled || !cfg.apiKey) {
+      console.log('[Firebase] Devre dışı veya yapılandırılmamış.');
+      document.getElementById('firebase-dot').classList.remove('active');
+      return;
+    }
+
+    const app  = initializeApp(cfg);
+    fbAuth     = getAuth(app);
+    fbEnabled  = true;
+    document.getElementById('firebase-dot').classList.add('active');
+
+    onAuthStateChanged(fbAuth, async (user) => {
+      if (user) {
+        idToken = await user.getIdToken();
+        // Token'ı her saat yenile
+        setInterval(async () => { idToken = await user.getIdToken(true); }, 50 * 60 * 1000);
+        showUserUI(user.displayName || user.email);
+        window._firebaseIdToken = idToken;
+      } else {
+        idToken = null;
+        window._firebaseIdToken = null;
+        showGuestUI();
+      }
+    });
+  } catch (e) {
+    console.warn('[Firebase] Başlatma hatası:', e);
+  }
+}
+
+/* ── Auth UI helpers ── */
+function showUserUI(name) {
+  document.getElementById('login-btn').style.display   = 'none';
+  document.getElementById('user-pill').classList.add('visible');
+  document.getElementById('user-display').textContent  = name;
+}
+function showGuestUI() {
+  document.getElementById('login-btn').style.display   = '';
+  document.getElementById('user-pill').classList.remove('visible');
+  document.getElementById('history-section').classList.remove('visible');
+}
+
+/* ── Modal ── */
+let isRegister = false;
+
+document.getElementById('login-btn').addEventListener('click', openModal);
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+function openModal() {
+  document.getElementById('modal-overlay').classList.add('visible');
+  setAuthError('');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+}
+function setAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (msg) { el.textContent = msg; el.classList.add('visible'); }
+  else { el.textContent = ''; el.classList.remove('visible'); }
+}
+
+document.getElementById('modal-toggle-btn').addEventListener('click', () => {
+  isRegister = !isRegister;
+  document.getElementById('modal-title').textContent     = isRegister ? 'Kayıt Ol'  : 'Giriş Yap';
+  document.getElementById('modal-subtitle').textContent  = isRegister ? 'YENİ HESAP OLUŞTUR' : 'HESABINIZA GİRİŞ YAPIN';
+  document.getElementById('auth-submit-btn').textContent = isRegister ? 'Kayıt Ol'  : 'Giriş Yap';
+  document.getElementById('modal-toggle-text').textContent = isRegister ? 'Zaten hesabınız var mı?' : 'Hesabınız yok mu?';
+  document.getElementById('modal-toggle-btn').textContent = isRegister ? 'Giriş Yap' : 'Kayıt Ol';
+  setAuthError('');
+});
+
+/* ── E-posta / şifre auth ── */
+document.getElementById('auth-submit-btn').addEventListener('click', async () => {
+  if (!fbAuth) return;
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) { setAuthError('E-posta ve şifre giriniz.'); return; }
+  setAuthError('');
+  const btn = document.getElementById('auth-submit-btn');
+  btn.disabled = true;
+  try {
+    if (isRegister) {
+      await createUserWithEmailAndPassword(fbAuth, email, password);
+    } else {
+      await signInWithEmailAndPassword(fbAuth, email, password);
+    }
+    closeModal();
+  } catch (e) {
+    const msgs = {
+      'auth/wrong-password':    'Şifre hatalı.',
+      'auth/user-not-found':    'Bu e-posta ile hesap bulunamadı.',
+      'auth/email-already-in-use': 'Bu e-posta zaten kullanımda.',
+      'auth/weak-password':     'Şifre en az 6 karakter olmalı.',
+      'auth/invalid-email':     'Geçersiz e-posta adresi.',
+    };
+    setAuthError(msgs[e.code] || e.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ── Enter tuşu ── */
+['auth-email', 'auth-password'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('auth-submit-btn').click();
+  });
+});
+
+/* ── Google sign-in ── */
+document.getElementById('google-btn').addEventListener('click', async () => {
+  if (!fbAuth) return;
+  try {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(fbAuth, provider);
+    closeModal();
+  } catch (e) {
+    if (e.code !== 'auth/popup-closed-by-user') setAuthError(e.message);
+  }
+});
+
+/* ── Logout ── */
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  if (fbAuth) await signOut(fbAuth);
+  document.getElementById('history-section').classList.remove('visible');
+});
+
+/* ── History panel ── */
+document.getElementById('history-toggle-btn').addEventListener('click', async () => {
+  const section = document.getElementById('history-section');
+  if (section.classList.contains('visible')) {
+    section.classList.remove('visible');
+    return;
+  }
+  section.classList.add('visible');
+  await loadHistory();
+});
+
+async function loadHistory() {
+  if (!idToken) return;
+  const list = document.getElementById('history-list');
+  list.innerHTML = '<div class="history-empty">Yükleniyor...</div>';
+  try {
+    const res  = await fetch('/api/history', { headers: { 'Authorization': 'Bearer ' + idToken } });
+    const data = await res.json();
+    if (!res.ok) { list.innerHTML = `<div class="history-empty">${data.error || 'Hata'}</div>`; return; }
+    renderHistory(data.exams || []);
+  } catch (e) {
+    list.innerHTML = `<div class="history-empty">Bağlantı hatası: ${e.message}</div>`;
+  }
+}
+
+function renderHistory(exams) {
+  const list = document.getElementById('history-list');
+  if (!exams.length) { list.innerHTML = '<div class="history-empty">Henüz çözülmüş sınav yok.</div>'; return; }
+
+  list.innerHTML = '';
+  exams.forEach(exam => {
+    const date = exam.uploadedAt ? new Date(exam.uploadedAt).toLocaleString('tr-TR') : '—';
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.dataset.examId = exam.examId;
+
+    item.innerHTML = `
+      <div style="min-width:0">
+        <div class="hist-name">${escapeHtml(exam.filename)}</div>
+        <div class="hist-meta">${date} · ${(exam.provider || '').toUpperCase()} · ${exam.answeredQuestions || 0}/${exam.totalQuestions || 0} cevap</div>
+        <div class="hist-answers">
+          <button class="btn-load-answers">Cevapları Göster</button>
+          <div class="hist-answer-grid" id="hag-${exam.examId}"></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0">
+        <div class="hist-badge ${exam.status}">
+          ${exam.status === 'completed' ? 'Tamamlandı' : exam.status === 'processing' ? 'İşleniyor' : 'Hata'}
+        </div>
+      </div>
+    `;
+
+    // Sınav satırına tıklanınca aç/kapat
+    item.addEventListener('click', () => item.classList.toggle('open'));
+
+    // "Cevapları Göster" — tıklama yukarı yayılmasın
+    item.querySelector('.btn-load-answers').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await loadExamDetail(exam.examId, `hag-${exam.examId}`);
+      e.target.remove();
+    });
+
+    list.appendChild(item);
+  });
+}
+
+async function loadExamDetail(examId, gridId) {
+  if (!idToken) return;
+  try {
+    const res  = await fetch(`/api/history/${examId}`, { headers: { 'Authorization': 'Bearer ' + idToken } });
+    const data = await res.json();
+    if (!res.ok) return;
+    const grid = document.getElementById(gridId);
+    if (!grid || !data.answers) return;
+    grid.innerHTML = '';
+
+    // .hist-answers div'ine tıklanınca parent'a yayılmasın (aksi hâlde history-item kapanır)
+    const answersContainer = grid.closest('.hist-answers');
+    if (answersContainer) {
+      answersContainer.addEventListener('click', e => e.stopPropagation(), { once: false });
+    }
+
+    data.answers.forEach(a => {
+      const card   = document.createElement('div');
+      card.className = 'answer-card';
+      const letter   = a.answer || 'UNCERTAIN';
+      const conf     = Math.round((a.confidence || 0) * 100);
+      card.innerHTML = `
+        <div class="answer-header">
+          <span class="q-num">Q${a.question_number}</span>
+          <span class="badge ${letter}">${letter}</span>
+        </div>
+        <div class="conf-bar"><div class="conf-fill ${conf < 70 ? 'low' : ''}" style="width:${conf}%"></div></div>
+        <div class="reason-text">${escapeHtml(a.reason || '')}</div>
+      `;
+      // Cevap kartı tıklaması üst sınav satırına yayılmasın
+      card.addEventListener('click', (e) => { e.stopPropagation(); card.classList.toggle('expanded'); });
+      grid.appendChild(card);
+    });
+  } catch (e) {
+    console.error('Detay yükleme hatası:', e);
+  }
+}
+
+// Firebase başlat
+initFirebase();
+</script>
+
+<!-- Ana uygulama mantığı (non-module) -->
 <script>
 /* ════════════════════════════════════════════════
    State
 ════════════════════════════════════════════════ */
 let selectedFile = null;
 let dryRun       = false;
-let lastDocx     = null;
 
 /* ════════════════════════════════════════════════
    DOM refs
@@ -626,45 +857,31 @@ const BASE_URL        = window.location.origin;
    File handling
 ════════════════════════════════════════════════ */
 function setFile(file) {
-  if (!file || !file.name.endsWith('.docx')) {
-    showError('Sadece .docx dosyaları yüklenebilir.');
-    return;
-  }
+  if (!file || !file.name.endsWith('.docx')) { showError('Sadece .docx dosyaları yüklenebilir.'); return; }
   selectedFile = file;
   fileNameText.textContent = file.name;
   fileNameDisplay.classList.add('visible');
   solveBtn.disabled = false;
   hideError();
 }
-
 fileInput.addEventListener('change', e => setFile(e.target.files[0]));
-
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  dropZone.classList.remove('drag-over');
-  setFile(e.dataTransfer.files[0]);
-});
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); setFile(e.dataTransfer.files[0]); });
 
 /* ════════════════════════════════════════════════
-   Dry-run toggle
+   Toggle
 ════════════════════════════════════════════════ */
-dryRunToggle.addEventListener('click', () => {
-  dryRun = !dryRun;
-  dryRunToggle.classList.toggle('on', dryRun);
-});
+dryRunToggle.addEventListener('click', () => { dryRun = !dryRun; dryRunToggle.classList.toggle('on', dryRun); });
 
 /* ════════════════════════════════════════════════
-   API health check
+   Health check
 ════════════════════════════════════════════════ */
 async function checkHealth() {
   try {
     const r = await fetch(`${BASE_URL}/api/health`);
     apiDot.classList.toggle('active', r.ok);
-  } catch {
-    apiDot.classList.remove('active');
-  }
+  } catch { apiDot.classList.remove('active'); }
 }
 checkHealth();
 setInterval(checkHealth, 30000);
@@ -684,14 +901,16 @@ solveBtn.addEventListener('click', async () => {
   progressPct.textContent    = '—';
 
   const fd = new FormData();
-  fd.append('file',     selectedFile);
+  fd.append('file',    selectedFile);
+  fd.append('dry_run', dryRun ? 'true' : 'false');
 
-  fd.append('dry_run',  dryRun ? 'true' : 'false');
+  // Firebase ID token varsa ekle (geçmişe kaydedilmesi için)
+  const headers = {};
+  if (window._firebaseIdToken) headers['Authorization'] = 'Bearer ' + window._firebaseIdToken;
 
   try {
-    // 1. Adım: İşi başlat, anında job_id al
     progressLabel.textContent = 'Dosya yükleniyor...';
-    const startRes = await fetch(`${BASE_URL}/api/solve`, { method: 'POST', body: fd });
+    const startRes = await fetch(`${BASE_URL}/api/solve`, { method: 'POST', body: fd, headers });
     if (!startRes.ok) {
       const err = await startRes.json();
       showError(err.error || `HTTP ${startRes.status}`);
@@ -700,36 +919,25 @@ solveBtn.addEventListener('click', async () => {
     }
     const { job_id } = await startRes.json();
 
-    // 2. Adım: Sonuç gelene kadar poll et (her 2 saniyede)
     progressLabel.textContent = 'AI sorular çözüyor...';
     let elapsed = 0;
-    const timerInterval = setInterval(() => {
-      elapsed++;
-      progressPct.textContent = `${elapsed}s geçti`;
-    }, 1000);
+    const timerInterval = setInterval(() => { elapsed++; progressPct.textContent = `${elapsed}s geçti`; }, 1000);
 
     const data = await new Promise((resolve, reject) => {
       const poll = async () => {
         try {
           const r = await fetch(`${BASE_URL}/api/status/${job_id}`);
           const d = await r.json();
-          if (d.status === 'running') {
-            setTimeout(poll, 2000);
-          } else if (d.status === 'done') {
-            resolve(d);
-          } else {
-            reject(new Error(d.error || 'Bilinmeyen hata'));
-          }
-        } catch (e) {
-          reject(e);
-        }
+          if (d.status === 'running') setTimeout(poll, 2000);
+          else if (d.status === 'done') resolve(d);
+          else reject(new Error(d.error || 'Bilinmeyen hata'));
+        } catch (e) { reject(e); }
       };
       poll();
     });
 
     clearInterval(timerInterval);
     progressSection.classList.remove('visible');
-
     renderResults(data, BASE_URL);
     resultsSection.classList.add('visible');
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -760,24 +968,69 @@ function renderResults(data, base) {
 
   answerGrid.innerHTML = '';
   (data.answers || []).forEach(a => {
-    const card = document.createElement('div');
+    const card   = document.createElement('div');
     card.className = 'answer-card';
     const confPct = Math.round((a.confidence || 0) * 100);
-    const lowConf = confPct < 70;
     const letter  = a.answer || 'UNCERTAIN';
-
     card.innerHTML = `
       <div class="answer-header">
         <span class="q-num">Q${a.question_number}</span>
         <span class="badge ${letter}">${letter}</span>
       </div>
       <div class="conf-bar">
-        <div class="conf-fill ${lowConf ? 'low' : ''}" style="width:${confPct}%"></div>
+        <div class="conf-fill ${confPct < 70 ? 'low' : ''}" style="width:${confPct}%"></div>
       </div>
       <div class="reason-text">${escapeHtml(a.reason || '')}</div>
     `;
     card.addEventListener('click', () => card.classList.toggle('expanded'));
     answerGrid.appendChild(card);
+  });
+
+  // Cloud badge
+  const cardTitle = document.querySelector('#results-section .card-title');
+  const old = cardTitle.querySelector('.cloud-badge');
+  if (old) old.remove();
+  if (data.cloud) {
+    const badge = document.createElement('span');
+    badge.className = 'cloud-badge';
+    badge.textContent = '☁ Cloud Function';
+    cardTitle.appendChild(badge);
+  }
+
+  // Sınav geçmişi varsa güncelle
+  if (data.examId && window._firebaseIdToken) {
+    setTimeout(() => {
+      const section = document.getElementById('history-section');
+      if (section.classList.contains('visible')) {
+        fetch('/api/history', { headers: { 'Authorization': 'Bearer ' + window._firebaseIdToken } })
+          .then(r => r.json()).then(d => { if (d.exams) renderHistoryGlobal(d.exams); }).catch(() => {});
+      }
+    }, 1500);
+  }
+}
+
+/* ── Global history render hook for non-module access ── */
+function renderHistoryGlobal(exams) {
+  // Bu fonksiyon module script tarafından da çağrılabilir
+  const list = document.getElementById('history-list');
+  if (!list) return;
+  // Modül script'teki renderHistory benzeri (basitleştirilmiş)
+  list.innerHTML = '';
+  if (!exams.length) { list.innerHTML = '<div class="history-empty">Henüz çözülmüş sınav yok.</div>'; return; }
+  exams.forEach(exam => {
+    const date = exam.uploadedAt ? new Date(exam.uploadedAt).toLocaleString('tr-TR') : '—';
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <div>
+        <div class="hist-name">${escapeHtml(exam.filename)}</div>
+        <div class="hist-meta">${date} · ${(exam.provider||'').toUpperCase()} · ${exam.answeredQuestions||0}/${exam.totalQuestions||0} cevap</div>
+        <div class="hist-answers"><div class="hist-answer-grid" id="hag2-${exam.examId}"></div></div>
+      </div>
+      <div><div class="hist-badge ${exam.status}">${exam.status==='completed'?'Tamamlandı':exam.status==='processing'?'İşleniyor':'Hata'}</div></div>
+    `;
+    item.addEventListener('click', () => item.classList.toggle('open'));
+    list.appendChild(item);
   });
 }
 
@@ -802,17 +1055,10 @@ function setLoading(on) {
   btnText.textContent = on ? 'İşleniyor...' : 'Çöz';
   btnIcon.textContent = on ? '⏳' : '▶';
 }
-
-function showError(msg) {
-  errorBox.textContent = '⚠ ' + msg;
-  errorBox.classList.add('visible');
-}
-function hideError() {
-  errorBox.classList.remove('visible');
-}
-
+function showError(msg) { errorBox.textContent = '⚠ ' + msg; errorBox.classList.add('visible'); }
+function hideError() { errorBox.classList.remove('visible'); }
 function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 </script>
 </body>
