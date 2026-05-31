@@ -1,143 +1,137 @@
-# VisionSolve MCQ 🎯
+# VisionSolve MCQ — Cloud Edition
 
-AI destekli çoktan seçmeli sınav çözücü. `.docx` formatındaki sınav kağıdını sisteme at, temiz bir cevap kağıdı al.
+AI destekli çoktan seçmeli sınav çözücü. `.docx` formatındaki sınav kağıdını yükle, AI cevaplasın; geçmişe kaydetsin.
+
+**v2.0 — Firebase Authentication + Cloud Firestore + Google Cloud Functions**
+
+---
+
+## Özellikler
+
+- **Kullanıcı girişi** — Firebase Auth ile e-posta/şifre veya Google hesabı
+- **Sınav çözme** — Gemini, GPT-4o veya Claude ile çoktan seçmeli soru çözümü
+- **Bulut geçmişi** — Çözülen sınavlar ve cevaplar Firestore'da kullanıcıya özel saklanır
+- **Web arayüzü** — Sürükle-bırak dosya yükleme, gerçek zamanlı ilerleme, geçmiş paneli
+- **Cloud Function** — AI Solver isteğe bağlı olarak Google Cloud Functions üzerinde çalışır
 
 ---
 
 ## Kurulum
 
-### 1. Repoyu klonla
-
 ```bash
-git clone https://github.com/kullanici/visionsolve-mcq.git
-cd visionsolve-mcq
-```
-
-### 2. Python bağımlılıklarını yükle
-
-```bash
+git clone https://github.com/bayo7/ExamSolver.git
+cd ExamSolver
 pip install -r requirements.txt
-```
-
-### 3. API key'ini ayarla
-
-```bash
 cp .env.example .env
-# .env dosyasını aç ve API key'ini gir
 ```
 
-`.env` içeriği:
-```
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
+`.env` dosyasını düzenleyerek LLM ve Firebase değerlerini girin (aşağıya bakın).
+
+```bash
+python main.py        # Web arayüzü → http://localhost:5000
 ```
 
 ---
 
-## Kullanım
+## Ortam Değişkenleri (.env)
 
-### Temel kullanım
+### LLM Ayarları
 
-```bash
-python main.py sample_papers/math_exam.docx
-```
+| Değişken | Açıklama |
+|----------|----------|
+| `LLM_PROVIDER` | `google` \| `anthropic` \| `openai` |
+| `GOOGLE_API_KEY` | Gemini API anahtarı |
+| `ANTHROPIC_API_KEY` | Claude API anahtarı |
+| `OPENAI_API_KEY` | OpenAI API anahtarı |
+| `API_DELAY` | API çağrıları arası bekleme süresi (saniye) |
+| `CLOUD_FUNCTION_URL` | AI Solver Cloud Function URL'i (boş bırakılırsa yerel çalışır) |
 
-### Farklı provider ile
+### Firebase Ayarları
 
-```bash
-python main.py exam.docx --provider openai
-python main.py exam.docx --provider google
-```
-
-### Çıktı klasörü belirle
-
-```bash
-python main.py exam.docx --output-dir results/
-```
-
-### API çağrısı yapmadan test (dry-run)
-
-```bash
-python main.py exam.docx --dry-run
-```
-
----
-
-## Örnek sınav dosyaları oluştur
-
-```bash
-cd sample_papers
-python create_sample_exams.py
-```
-
-Bu komut şunları oluşturur:
-- `sample_papers/math_exam.docx` — 12 matematik sorusu
-- `sample_papers/science_exam.docx` — 12 fen sorusu
-- `sample_papers/math_exam_key.json` — Cevap anahtarı
-- `sample_papers/science_exam_key.json` — Cevap anahtarı
+| Değişken | Nereden Alınır |
+|----------|----------------|
+| `FIREBASE_PROJECT_ID` | Service Account JSON → `project_id` |
+| `FIREBASE_PRIVATE_KEY_ID` | Service Account JSON → `private_key_id` |
+| `FIREBASE_PRIVATE_KEY` | Service Account JSON → `private_key` |
+| `FIREBASE_CLIENT_EMAIL` | Service Account JSON → `client_email` |
+| `FIREBASE_CLIENT_ID` | Service Account JSON → `client_id` |
+| `FIREBASE_WEB_API_KEY` | Firebase Console → Proje Ayarları → Web Uygulaması → `apiKey` |
+| `FIREBASE_AUTH_DOMAIN` | Firebase Console → Web Uygulaması → `authDomain` |
+| `FIREBASE_MESSAGING_SENDER_ID` | Firebase Console → Web Uygulaması → `messagingSenderId` |
+| `FIREBASE_APP_ID` | Firebase Console → Web Uygulaması → `appId` |
 
 ---
 
-## Doğruluk testi
+## Firebase Yapılandırması
 
-```bash
-# Önce çöz
-python main.py sample_papers/math_exam.docx
+Firebase entegrasyonunu kullanabilmek için aşağıdaki servislerin aktif edilmesi gerekir:
 
-# Sonra değerlendir
-python evaluate.py output_answers/math_exam_answers.json sample_papers/math_exam_key.json --subject Matematik
-```
+- **Authentication** — E-posta/Şifre ve Google sağlayıcıları etkinleştirilmeli
+- **Firestore** — Veritabanı oluşturulmalı; `firestore.rules` dosyasındaki güvenlik kuralları yayınlanmalı
+- **Service Account** — Firebase Console → Proje Ayarları → Hizmet Hesapları → Yeni özel anahtar (JSON) indirilmeli
+
+Firebase yapılandırılmamışsa uygulama sorunsuz şekilde yerel modda çalışmaya devam eder (giriş ve geçmiş özellikleri devre dışı kalır).
 
 ---
 
-## Yeni sınav kağıdı nasıl eklenir?
+## Cloud Function (İsteğe Bağlı)
 
-1. `.docx` dosyasını `sample_papers/` klasörüne koy
-2. `python main.py sample_papers/<dosya_adı>.docx` komutunu çalıştır
-3. Cevap kağıdı `output_answers/<dosya_adı>_answers.docx` olarak oluşur
+AI Solver'ı Google Cloud Functions üzerinde çalıştırmak için:
+
+```bash
+cd cloud_functions/ai_solver
+gcloud functions deploy solve_question \
+  --runtime python312 \
+  --trigger-http \
+  --allow-unauthenticated \
+  --region europe-west1 \
+  --set-env-vars "LLM_PROVIDER=google,GOOGLE_API_KEY=..." \
+  --entry-point solve_question \
+  --source .
+```
+
+Dağıtım sonrası `.env`'e ekle:
+```
+CLOUD_FUNCTION_URL=https://europe-west1-PROJE_ID.cloudfunctions.net/solve_question
+```
+
+`CLOUD_FUNCTION_URL` boş bırakılırsa solver yerel olarak çalışır.
 
 ---
 
 ## Proje Yapısı
 
 ```
-visionsolve/
-├── main.py                        # Ana pipeline
-├── evaluate.py                    # Doğruluk testi
+ExamSolver/
+├── main.py                          # Flask web sunucusu + CLI
+├── index.html                       # Web arayüzü (Firebase Auth + geçmiş)
 ├── requirements.txt
 ├── .env.example
+├── firestore.rules                  # Firestore güvenlik kuralları
 │
-├── parser/
-│   └── docx_parser.py             # .docx → soru listesi
+├── cloud/                           # Firebase entegrasyon modülü
+│   ├── firebase_service.py          # Admin SDK başlatma
+│   ├── auth_middleware.py           # JWT token doğrulama
+│   └── firestore_db.py              # Sınav geçmişi CRUD
+│
+├── cloud_functions/
+│   └── ai_solver/
+│       ├── main.py                  # HTTP Cloud Function (AI Solver)
+│       └── requirements.txt
 │
 ├── solver/
-│   └── ai_solver.py               # LLM API entegrasyonu
+│   ├── ai_solver.py                 # Yerel LLM entegrasyonu
+│   └── cloud_solver.py             # Cloud Function HTTP wrapper
+│
+├── parser/
+│   └── docx_parser.py              # .docx → soru listesi
 │
 ├── output/
-│   └── answer_writer.py           # Cevap kağıdı üretici
+│   └── answer_writer.py            # Cevap kağıdı üretici
 │
-├── utils/
-│   └── image_handler.py           # Görsel işleme
-│
-├── sample_papers/
-│   ├── create_sample_exams.py     # Test dosyası üretici
-│   ├── math_exam.docx
-│   └── science_exam.docx
-│
-└── output_answers/                # Üretilen cevap kağıtları buraya gelir
+└── utils/
+    └── image_handler.py            # Görsel işleme
 ```
-
----
-
-Q1. Soru metni buraya
-A) Şık metni
-B) Şık metni
-C) Şık metni
-D) Şık metni
-                    ← tek boş satır
-Q2. Soru metni buraya
-A) Şık metni
-...
 
 ---
 
@@ -145,8 +139,10 @@ A) Şık metni
 
 | Katman | Teknoloji |
 |--------|-----------|
-| Dil | Python 3.10+ |
-| Docx | python-docx |
-| Görsel | Pillow (PIL) |
-| AI | Claude / GPT-4o / Gemini 2.5 Flash |
-| Çıktı | python-docx |
+| Backend | Python 3.10+, Flask |
+| AI | Gemini 2.5 Flash / GPT-4o / Claude Opus |
+| Auth | Firebase Authentication |
+| Veritabanı | Cloud Firestore |
+| Serverless | Google Cloud Functions |
+| Frontend | Vanilla JS, Firebase JS SDK v10 |
+| Belge işleme | python-docx, Pillow |
