@@ -1,6 +1,13 @@
 .env
 __pycache__/
 *.pyc
+*.pyo
 .idea/
+.vscode/
 output/
 output_answers/
+
+# Python sanal ortamlar
+venv/
+.venv/
+env/
